@@ -47,6 +47,8 @@ namespace Bl.Framework.Azure.Messaging.ServiceBus.Bus
 
                     act(message);
 
+                    receiver.CompleteMessageAsync(message);
+
                     Thread.Sleep(50);
                 }
             }

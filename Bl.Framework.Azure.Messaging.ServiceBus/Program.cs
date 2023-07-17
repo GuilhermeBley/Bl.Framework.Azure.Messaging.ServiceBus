@@ -27,9 +27,14 @@ namespace Bl.Framework.Azure.Messaging.ServiceBus
             Console.Write("Type message quantity (number 1 - 100): ");
             var readCountText = Console.ReadLine();
 
+            Console.Write("Type consumer quantity (number 1 - 100): ");
+            var consumerQttText = Console.ReadLine();
+
             int.TryParse(readCountText, out int readCount);
+            int.TryParse(consumerQttText, out int consumerQtt);
 
             readCount = readCount < 1 || readCount > 100 ? 10 : readCount;
+            consumerQtt = consumerQtt < 1 || consumerQtt > 100 ? 10 : consumerQtt;
 
             var messagesConsole = new ConcurrentQueue<string>();
 
@@ -37,20 +42,21 @@ namespace Bl.Framework.Azure.Messaging.ServiceBus
             {
                 using (var pub = new Publisher(azureServiceBusConnectionString, "queue-example"))
                 {
-                    for (int messageQtt = 0; messageQtt < readCount; messageQtt++)
-                        await pub.Publish(messageLine);
+                    for (int idxMessageQtt = 0; idxMessageQtt < readCount; idxMessageQtt++)
+                        await pub.Publish(string.Concat($"{idxMessageQtt} - ", messageLine));
                 }
 
-                consumer.CreateThreadConsumer(
-                    (m) =>
-                    {
-                        messagesConsole.Enqueue(Encoding.UTF8.GetString(m.Body.ToArray()));
-                    });
-                
+                for(int idxQttConsu = 0; idxQttConsu < consumerQtt; idxQttConsu++)
+                    consumer.CreateThreadConsumer(
+                        (m) =>
+                        {
+                            messagesConsole.Enqueue(Encoding.UTF8.GetString(m.Body.ToArray()));
+                        });
+
                 while (true)
                 {
                     await Task.Delay(TimeSpan.FromMilliseconds(100));
-                    var messageToWrite = messagesConsole.FirstOrDefault();
+                    messagesConsole.TryDequeue(out string messageToWrite);
 
                     if (messageToWrite != null)
                         Console.WriteLine(messageToWrite);
